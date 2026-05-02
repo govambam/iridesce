@@ -19,7 +19,9 @@ body {
   position: fixed;
   inset: 0;
   width: 100vw;
-  height: 100vh;
+  /* lvh: largest viewport height, so iOS Safari's collapsing URL bar
+     never exposes a strip below the grid. */
+  height: 100lvh;
   z-index: 0;
   pointer-events: none;
   display: block;

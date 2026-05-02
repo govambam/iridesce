@@ -182,7 +182,7 @@ It's a self-contained Canvas2D component, no dependencies. Please:
 
 2. Mount a full-viewport canvas as the background:
    - Element: \`<canvas id="dotted-grid-bg">\`
-   - Style: \`position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; display: block;\`
+   - Style: \`position: fixed; inset: 0; width: 100vw; height: 100lvh; z-index: 0; pointer-events: none; display: block;\` — use \`100lvh\` (large viewport height), not \`100vh\`, so iOS Safari's collapsing URL bar doesn't expose a strip below the grid.
    - Layer all page content above it: wrap content in an element with \`position: relative; z-index: 1;\` (or higher). Do NOT use \`z-index: -1\` on the canvas — it can hide behind the body's stacking context in many frameworks.
    - The canvas paints its own background via \`ctx.fillRect(bgColor)\`; do not set a CSS \`background-color\` on the canvas element. If your page \`<body>\` has its own background-color, that's fine — the canvas covers it.
    - The class attaches its own listeners to \`window\`, so \`pointer-events: none\` on the canvas is correct — clicks still work on content above.

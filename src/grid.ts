@@ -145,14 +145,14 @@ export class DottedGrid {
 
   private resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    // Read CSS-resolved box (100lvh) rather than window.innerHeight, so
+    // iOS Safari's collapsing URL bar doesn't leave a gap below the grid.
+    const w = this.canvas.clientWidth || window.innerWidth;
+    const h = this.canvas.clientHeight || window.innerHeight;
     this.width = w;
     this.height = h;
     this.canvas.width = Math.floor(w * dpr);
     this.canvas.height = Math.floor(h * dpr);
-    this.canvas.style.width = `${w}px`;
-    this.canvas.style.height = `${h}px`;
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.buildDots();
   }
