@@ -370,9 +370,19 @@ helpLink.addEventListener("click", (e) => {
   openHelpModal();
 });
 
-const divider = document.createElement("span");
-divider.className = "panel-help-divider";
-divider.textContent = "·";
+function makeDivider(): HTMLSpanElement {
+  const d = document.createElement("span");
+  d.className = "panel-help-divider";
+  d.textContent = "·";
+  return d;
+}
+
+const repoLink = document.createElement("a");
+repoLink.className = "panel-help-link";
+repoLink.href = "https://github.com/govambam/iridesce";
+repoLink.target = "_blank";
+repoLink.rel = "noopener";
+repoLink.textContent = "GitHub ↗";
 
 const resetLink = document.createElement("a");
 resetLink.className = "panel-help-link";
@@ -383,5 +393,5 @@ resetLink.addEventListener("click", (e) => {
   resetConfig();
 });
 
-helpFooter.append(helpLink, divider, resetLink);
+helpFooter.append(helpLink, makeDivider(), repoLink, makeDivider(), resetLink);
 gui.domElement.appendChild(helpFooter);
