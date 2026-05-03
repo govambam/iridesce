@@ -2,6 +2,14 @@ import GUI from "lil-gui";
 import { DottedGrid, type GridConfig } from "./grid.ts";
 import gridSource from "./grid.ts?raw";
 
+// Instrumentation hook. The library doesn't ship with a tracker — it
+// just dispatches `iridesce:*` CustomEvents on document. Wire your own
+// listener (analytics, telemetry, debugging) via:
+//   document.addEventListener("iridesce:palette-changed", (e) => …);
+function emit(name: string, detail?: Record<string, unknown>): void {
+  document.dispatchEvent(new CustomEvent(`iridesce:${name}`, { detail }));
+}
+
 const SITE_PALETTE = [
   "#1E3AFF", // cobalt
   "#FF4D1F", // orange
@@ -76,7 +84,10 @@ grid.start();
 const gui = new GUI({ title: "Controls" });
 
 const exportActions = {
-  addToProject: () => openExportModal(),
+  addToProject: () => {
+    emit("add-to-project-opened");
+    openExportModal();
+  },
 };
 gui.add(exportActions, "addToProject").name("→ Add to your project");
 
@@ -103,6 +114,15 @@ function buildPalette() {
       .onChange((v: string) => {
         config.palette[idx] = v;
         grid.rebuild();
+      })
+      // onFinishChange fires once per color pick (drag-end / picker
+      // close), so listeners get one event instead of one per pixel.
+      .onFinishChange(() => {
+        emit("palette-changed", {
+          action: "edit",
+          palette_size: config.palette.length,
+          palette: [...config.palette],
+        });
       });
 
     if (config.palette.length > 1) {
@@ -117,6 +137,11 @@ function buildPalette() {
         buildPalette();
         grid.rebuild();
         saveConfig();
+        emit("palette-changed", {
+          action: "remove",
+          palette_size: config.palette.length,
+          palette: [...config.palette],
+        });
       });
       ctrl.domElement.appendChild(removeBtn);
     }
@@ -135,6 +160,11 @@ function buildPalette() {
     buildPalette();
     grid.rebuild();
     saveConfig();
+    emit("palette-changed", {
+      action: "add",
+      palette_size: config.palette.length,
+      palette: [...config.palette],
+    });
   });
   addRow.appendChild(addBtn);
   palette.$children.appendChild(addRow);
@@ -161,6 +191,16 @@ physics.add(config, "springStiffness", 0.01, 0.3, 0.005).name("spring");
 physics.add(config, "damping", 0.5, 0.99, 0.01).name("damping");
 
 gui.onChange(() => saveConfig());
+
+// Centralized hook for every non-palette control. onFinishChange fires
+// once per drag-release (or once per discrete change for selects), so a
+// single slider drag = 1 event. Palette colors are skipped here — they
+// emit `palette-changed` with the full color array.
+gui.onFinishChange((event) => {
+  if (event.controller.parent === palette) return;
+  const name = (event.controller as { _name?: string })._name ?? event.property;
+  emit("control-changed", { control: name, value: event.value });
+});
 
 function resetConfig() {
   if (!window.confirm("Reset all controls to defaults?")) return;
@@ -281,8 +321,10 @@ function openExportModal() {
   body.append(intro, textarea, actions);
 
   copyBtn.addEventListener("click", async () => {
+    const promptSizeKb = Number((new Blob([promptText]).size / 1024).toFixed(1));
     try {
       await navigator.clipboard.writeText(promptText);
+      emit("prompt-copied", { prompt_size_kb: promptSizeKb });
       copyBtn.textContent = "Copied ✓";
       copyBtn.classList.add("is-copied");
       setTimeout(() => {
@@ -292,6 +334,7 @@ function openExportModal() {
     } catch {
       textarea.select();
       document.execCommand("copy");
+      emit("prompt-copied", { prompt_size_kb: promptSizeKb });
       copyBtn.textContent = "Copied ✓";
       setTimeout(() => (copyBtn.textContent = "Copy prompt"), 1600);
     }
@@ -367,6 +410,7 @@ helpLink.href = "#";
 helpLink.textContent = "What do these controls do?";
 helpLink.addEventListener("click", (e) => {
   e.preventDefault();
+  emit("help-opened");
   openHelpModal();
 });
 
@@ -380,6 +424,7 @@ resetLink.href = "#";
 resetLink.textContent = "Reset";
 resetLink.addEventListener("click", (e) => {
   e.preventDefault();
+  emit("reset-clicked");
   resetConfig();
 });
 
